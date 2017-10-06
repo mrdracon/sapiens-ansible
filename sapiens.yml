@@ -1,0 +1,9 @@
+---
+# This playbook installs common things for common role 
+
+- name: common things for every host
+  hosts: all
+  remote_user: root
+
+  roles:
+    - common

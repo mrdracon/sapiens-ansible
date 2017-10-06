@@ -1,0 +1,53 @@
+---
+# Common plays for every nodes
+# Install Zabbix agent
+
+- name: "Add Zabbix repositories for SLES12SP1"
+  zypper_repository:
+        repo: 'http://download.opensuse.org/repositories/server:/monitoring/SLE_12_SP1/server:monitoring.repo'
+        auto_import_keys: yes
+        #disable_gpg_check: yes
+        runrefresh: yes
+        state: present
+
+- name: "Install zabbix agent"
+  package:
+    name: zabbix-agent
+    state: present
+
+- name: "Copy Zabbix agent config"
+  copy: 
+        src: zabbix_agentd.conf 
+        dest: /etc/zabbix/zabbix-agentd.conf
+  notify:
+        - restart zabbix-agent
+
+- name: "Ensure /etc/zabbix/zabbix_agentd.d directory exists"
+# On SLES 12 you need to create it
+  file:
+        path: /etc/zabbix/zabbix_agentd.d
+        state: directory
+        mode: 0755
+        group: zabbix
+  notify:
+        - restart zabbix-agent
+
+# Disk performance monitoring files
+- name: "Copy Zabbix Disk info templates config"
+  copy: 
+        src: userparameter_diskstats.conf 
+        dest: /etc/zabbix/zabbix_agentd.d/userparameter_diskstats.conf
+        group: zabbix
+
+- name: "Copy Zabbix Disk info template script and make it executable"
+  copy: 
+        src: lld-disks.py 
+        dest: /usr/local/bin/lld-disks.py
+        mode: 0755
+        group: zabbix
+
+- name: "Make sure zabbix-agent service is running"
+  service:
+        name: zabbix-agentd
+        state: started
+        enabled: yes
