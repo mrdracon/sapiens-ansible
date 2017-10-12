@@ -1,36 +1,29 @@
 ---
 # Common plays for every nodes
+# Load variables
+- name: "Set OS-specific variables"
+  include_vars: "{{ ansible_os_family }}.yml"
+#  with_first_round:
+#          - "{{ ansible_os_family }}.yml"
+
 # Install Zabbix agent
 
-- name: "Add Zabbix repositories for SLES12SP1"
-  zypper_repository:
-        repo: 'http://download.opensuse.org/repositories/server:/monitoring/SLE_12_SP1/server:monitoring.repo'
-        auto_import_keys: yes
-        #disable_gpg_check: yes
-        runrefresh: yes
-        state: present
+- name: "Install agent for SUSE"
+  include: "Suse.yml"
+  when:
+          - ansible_os_family == "Suse"
 
-- name: "Install zabbix agent"
-  package:
-    name: zabbix-agent
-    state: present
-
+- name: "Install agent for Debian"
+  include: "Debian.yml"
+  when:
+          - ansible_os_family == "Debian"
+          
 - name: "Copy Zabbix agent config"
-  copy: 
-        src: zabbix_agentd.conf 
-        dest: /etc/zabbix/zabbix-agentd.conf
+  template: 
+          src: zabbix_agentd.conf.j2 
+          dest: "/etc/zabbix/{{ zabbix_agent_conf  }}"
   notify:
-        - restart zabbix-agent
-
-- name: "Ensure /etc/zabbix/zabbix_agentd.d directory exists"
-# On SLES 12 you need to create it
-  file:
-        path: /etc/zabbix/zabbix_agentd.d
-        state: directory
-        mode: 0755
-        group: zabbix
-  notify:
-        - restart zabbix-agent
+                  - restart zabbix-agent
 
 # Disk performance monitoring files
 - name: "Copy Zabbix Disk info templates config"
@@ -48,6 +41,6 @@
 
 - name: "Make sure zabbix-agent service is running"
   service:
-        name: zabbix-agentd
+        name: "{{ zabbix_agent_service }}"
         state: started
         enabled: yes
